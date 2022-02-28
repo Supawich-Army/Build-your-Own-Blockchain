@@ -7,7 +7,7 @@ class Transaction {
         public payer: string,
         public payee: string,
 
-    ) {}
+    ) { }
 
     toString() {
         return JSON.stringify(this);
@@ -21,7 +21,7 @@ class Block {
         public prevHash: String,
         public transaction: Transaction,
         public ts = Date.now()
-    ) {}
+    ) { }
 
     get hash() {
         const str = JSON.stringify(this);
@@ -32,15 +32,18 @@ class Block {
 
 }
 
-class Chain{
+class Chain {
     public static instance = new Chain();
 
     chain: Block[];
 
     constructor() {
-        this.chain = [new Block(null, new Transaction(100, 'genesis', 'satoshi'))];
+        this.chain = [
+          // Genesis block
+          new Block('', new Transaction(100, 'genesis', 'satoshi'))
+        ];
     }
-    
+
     get lastBlock() {
         return this.chain[this.chain.length - 1];
     }
@@ -49,17 +52,16 @@ class Chain{
         let solution = 1;
         console.log('mining...')
 
-        while(true) {
+        while (true) {
             const hash = crypto.createHash('MD5');
             hash.update((nonce + solution).toString()).end();
-             
+
             const attempt = hash.digest('hex');
-            
-            if(attempt.substr(0,4) === '0000') {
-                console.log('Solved: ${solution}');
+
+            if(attempt.substr(0,4) === '0000'){
+                console.log(`Solved: ${solution}`);
                 return solution;
-            }
-            solution += 1;
+              }
         }
     }
 
@@ -70,7 +72,7 @@ class Chain{
 
         const isValid = verifier.verify(senderPublicKey, signature);
 
-        if(isValid) {
+        if (isValid) {
             const newBlock = new Block(this.lastBlock.hash, transaction);
             this.mine(newBlock.nonce);
             this.chain.push(newBlock);
@@ -82,43 +84,42 @@ class Chain{
 }
 
 class Wallet {
-    public publickey: string;
-    public privatekey: string;
+    public publicKey: string;
+    public privateKey: string;
 
     constructor() {
         const keypair = crypto.generateKeyPairSync('rsa', {
-            modulusLength: 2048,
-            publickeyEncoding: { type: 'spki', format: 'pem'},
-            privatekeyEncoding: { type: 'pkcs8', format: 'pem'},
-
+          modulusLength: 2048,
+          publicKeyEncoding: { type: 'spki', format: 'pem' },
+          privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
         });
-
-        this.publickey = keypair.publicKey;
-        this.privatekey = keypair.privateKey;
-    }
+    
+        this.privateKey = keypair.privateKey;
+        this.publicKey = keypair.publicKey;
+      }
 
     sendMoney(amount: number, payeePublicKey: string) {
-        const transaction = new Transaction(amount, this.publickey, payeePublicKey);
-        
+        const transaction = new Transaction(amount, this.publicKey, payeePublicKey);
+
         const sign = crypto.createSign('SHA256');
         sign.update(transaction.toString()).end();
-        
 
 
-        const signature = sign.sign(this.privatekey);
-        Chain.instance.addBlock(transaction, this.publickey, signature);
+
+        const signature = sign.sign(this.privateKey);
+        Chain.instance.addBlock(transaction, this.publicKey, signature);
     }
 }
 
 
 // Example usuage
 
-const satoshi  = new Wallet();
+const satoshi = new Wallet();
 const bob = new Wallet();
 const alice = new Wallet();
 
-satoshi.sendMoney(50, bob.publickey);
-bob.sendMoney(23, alice.publickey);
-alice.sendMoney(17, bob.publickey);
+satoshi.sendMoney(50, bob.publicKey);
+bob.sendMoney(23, alice.publicKey);
+alice.sendMoney(17, bob.publicKey);
 
 console.log(Chain.instance);
